@@ -1,4 +1,4 @@
-def subprocesscall(command, shell=False):
+def subprocess_call(command, shell=False):
     """
     Function used to execute commands in the terminal. Prints any errors to logs
     :param command: Command to execute

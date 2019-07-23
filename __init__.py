@@ -4,4 +4,6 @@ from .disp import disp
 from .get_precision_and_scale import get_precision_and_scale
 from .sendmail import sendmail
 from .str2num import str2num
-from .subprocesscall import subprocesscall
+from .subprocesscall import subprocess_call
+from .is_async import is_async
+
