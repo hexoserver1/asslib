@@ -5,5 +5,5 @@ from .get_precision_and_scale import get_precision_and_scale
 from .sendmail import sendmail
 from .str2num import str2num
 from .subprocess_call import subprocess_call
-from .is_async import is_async
-
+from .get_frame_name import get_frame_name
+from . import async_util
