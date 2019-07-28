@@ -1,4 +1,4 @@
-def sendmail(to, subject, text, host='mailhost.nerc-liv.ac.uk', sender='do-not-reply@nerc-liv.ac.uk', sendname=None,
+def sendmail(to, subject, text, host, sender, sendname=None,
              send=True, sub=None):
     """
     email = sendmail(to,subject,text,[host],[sender],[sendname],[send],[sub],[conndb])
@@ -19,6 +19,7 @@ def sendmail(to, subject, text, host='mailhost.nerc-liv.ac.uk', sender='do-not-r
     title - sendmail vr - 1.1 author - fakas date - 20170802
 
     mods  - 1.1 Corrections to better conform with Python conventions (20190708fakas)
+            1.2 Made host and sender mandatory arguments
     """
     from smtplib import SMTP
 
