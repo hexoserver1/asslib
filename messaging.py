@@ -1,6 +1,7 @@
 import aio_pika
 import asyncio
 import json
+import uuid
 from .disp import disp
 from types import FunctionType
 from .async_util import call
@@ -14,6 +15,7 @@ class AsyncClient:
     channels = {}
     exchanges = {}
     verbose = False
+    correlation_id = uuid.uuid4()
 
     def __init__(self, event_loop=None, verbose: bool = False):
         if event_loop is None:
@@ -96,10 +98,14 @@ class AsyncClient:
         if reply is not None:
             reply_key = reply["routing_key"]
             reply_callback = reply["callback"]
+            corr_id = self.correlation_id
             await self.create_listener(reply_key, reply_callback, auto_ack=True, channel_number=channel_number)
+        else:
+            reply_key = None
+            corr_id = None
 
         disp(f"Sending message: \"{sent}\"", do_print=self.verbose)
-        message = aio_pika.Message(message)
+        message = aio_pika.Message(body=message, reply_to=reply_key, correlation_id=corr_id)
         await exchange.publish(message, routing_key=routing_key)
 
     async def send_json(self, message: dict, routing_key: str, channel_number: int = None, exchange_name: str = None,
