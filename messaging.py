@@ -111,7 +111,7 @@ class AsyncClient:
     async def send_json(self, message: dict, routing_key: str, channel_number: int = None, exchange_name: str = None,
                         encoding="utf-8", reply: dict = None):
         disp("Converting dict to JSON string...", do_print=self.verbose)
-        s_message = json.dumps(message).encode(encoding)
+        s_message = json.dumps(message)
         await self.send_string(s_message, routing_key, channel_number=channel_number, exchange_name=exchange_name,
                                encoding=encoding, reply=reply)
 
