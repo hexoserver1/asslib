@@ -1,4 +1,4 @@
-def disp(*args, suppress=False):
+def disp(*args, do_print=True):
     """
         disp(msg)
 
@@ -36,7 +36,7 @@ def disp(*args, suppress=False):
     except Exception:
         traceback.print_exc()
 
-    if not suppress:
+    if do_print:
         print(*args)
 
     return args
