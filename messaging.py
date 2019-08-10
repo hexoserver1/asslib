@@ -8,6 +8,7 @@ from .async_util import call
 
 
 class AsyncClient:
+    # Just something to simplify my use of aio_pika
     event_loop = None
     connection = None
     url = None
@@ -65,7 +66,6 @@ class AsyncClient:
         queue = await channel.declare_queue(routing_key)
         self.queues.update({routing_key: queue})
 
-        disp(f"Registered queue \"{routing_key}\"")
         return await self.get_queue(routing_key)
 
     async def get_queue(self, routing_key: str):
@@ -89,7 +89,7 @@ class AsyncClient:
     # Sender tasks
 
     async def send_bytes(self, message: bytes, routing_key: str, channel_number: int = None, exchange_name: str = None,
-                         reply: dict = None):
+                         reply: dict = None, corr_id: str = None, ttl=None):
         channel = await self.get_channel(channel_number=channel_number)
 
         exchange = channel.default_exchange if exchange_name is None else await self.get_exchange(exchange_name)
@@ -98,29 +98,29 @@ class AsyncClient:
         if reply is not None:
             reply_key = reply["routing_key"]
             reply_callback = reply["callback"]
-            corr_id = self.correlation_id
+            if corr_id is None:
+                corr_id = self.correlation_id
             await self.create_listener(reply_key, reply_callback, auto_ack=True, channel_number=channel_number)
         else:
             reply_key = None
-            corr_id = None
 
         disp(f"Sending message: \"{sent}\"", do_print=self.verbose)
-        message = aio_pika.Message(body=message, reply_to=reply_key, correlation_id=corr_id)
+        message = aio_pika.Message(body=message, reply_to=reply_key, correlation_id=corr_id, expiration=ttl)
         await exchange.publish(message, routing_key=routing_key)
 
     async def send_json(self, message: dict, routing_key: str, channel_number: int = None, exchange_name: str = None,
-                        encoding="utf-8", reply: dict = None):
+                        encoding="utf-8", reply: dict = None, corr_id=None, ttl=None):
         disp("Converting dict to JSON string...", do_print=self.verbose)
         s_message = json.dumps(message)
         await self.send_string(s_message, routing_key, channel_number=channel_number, exchange_name=exchange_name,
-                               encoding=encoding, reply=reply)
+                               encoding=encoding, reply=reply, corr_id=corr_id, ttl=ttl)
 
     async def send_string(self, message: str, routing_key: str, channel_number: int = None, exchange_name: str = None,
-                          encoding="utf-8", reply: dict = None):
+                          encoding="utf-8", reply: dict = None, corr_id=None, ttl=None):
         disp(f"Encoding string to bytes message with {encoding}")
         b_message = message.encode(encoding)
         await self.send_bytes(b_message, routing_key, channel_number=channel_number, exchange_name=exchange_name,
-                              reply=reply)
+                              reply=reply, corr_id=corr_id, ttl=ttl)
 
     # Receiver tasks
 
@@ -130,17 +130,21 @@ class AsyncClient:
             queue = await self.register_queue(routing_key, channel_number=channel_number)
         else:
             queue = await self.get_queue(routing_key)
-        cc = _CallbackClass(callback)
-        await queue.consume(cc.callback_function, no_ack=not auto_ack)
+        cc = _CallbackClass(callback, auto_ack)
+        await queue.consume(cc.callback_function)
 
 
 class _CallbackClass:
     func = None
+    auto_ack = None
 
-    def __init__(self, func):
+    def __init__(self, func, auto_ack):
         self.func = func
+        self.auto_ack = auto_ack
 
     async def callback_function(self, message: aio_pika.IncomingMessage):
+        if self.auto_ack:
+            await message.ack()
         await call(self.func, message)
 
 
@@ -160,3 +164,5 @@ def reply_args(routing_key, callback):
         "routing_key": routing_key,
         "callback": callback
     }
+
+# TODO blocking client
